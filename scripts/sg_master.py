@@ -85,21 +85,21 @@ class StoringGroceries:
         subprocess.call(voice_cmd.strip().split(' '))
 
     def setPlace(self, place_name): 
-        place_name.data = place_name
-        self.navigation_memorize_pub.publish(place_name)
+        #place_name.data = place_name
+        #self.navigation_memorize_pub.publish(place_name)
         rospy.loginfo("Memorizing...")
-        while self.navigation_result_flg == False and not rospy.is_shutdown():
-            time.sleep(0.5)
-        self.navigation_result_flg = False
+        #while self.navigation_result_flg == False and not rospy.is_shutdown():
+        #    time.sleep(0.5)
+        #self.navigation_result_flg = False
         rospy.loginfo("Memorization complete!")
 
     def movePlace(self, place_name):
         place_name.data = place_name
-        self.navigation_command_pub.publish(place_name)
+        #self.navigation_command_pub.publish(place_name)
         rospy.loginfo("Moving...")
-        while self.navigation_result_flg == False and not rospy.is_shutdown():
-            rospy.sleep(0.5)
-        self.navigation_result_flg = False
+        #while self.navigation_result_flg == False and not rospy.is_shutdown():
+        #    rospy.sleep(0.5)
+        #self.navigation_result_flg = False
         rospy.loginfo("Has arrived!")
     
     def linearControl(self, linear_num):
@@ -116,7 +116,7 @@ class StoringGroceries:
         if motor_name == 5:
             self.m5_angle.data = value
             self.m5_pub.publish(self.m5_angle)
-        else if motor_name == 6:
+        elif motor_name == 6:
             self.m6_angle.data = value
             self.m6_pub.publish(self.m6_angle)
 
@@ -124,82 +124,84 @@ class StoringGroceries:
         print '-'*40
         rospy.loginfo("Start state0")
         self.speak('I start storing groceries')
-        self.motorControl(6, 0.6)
+        #self.motorControl(6, 0.6)
         #self.m6_angle.data = 0.6
         #self.m6_pub.publish(self.m6_angle)
         rospy.loginfo("Advancing!")
-        while self.front_laser_dist > 0.5 and not rospy.is_shutdown():
-            self.linearControl(0.2)
-            rospy.sleep(0.1)
+        #while self.front_laser_dist > 0.5 and not rospy.is_shutdown():
+        #    self.linearControl(0.2)
+        #    rospy.sleep(0.1)
         self.setPlace('cupboard')
         rospy.sleep(2.0)
         rospy.loginfo("Reverse!")
-        while front_laser_dist < 0.80 and not rospy.is_shutdown():
-            self.linearControl(-0.2)
-            rospy.sleep(0.1)
+        #while front_laser_dist < 0.80 and not rospy.is_shutdown():
+        #    self.linearControl(-0.2)
+        #    rospy.sleep(0.1)
         rospy.sleep(2.0)
         self.speak('I reached the cup board')
         self.speak('Can you open the cup boar door?')
         #扉開いたかの判断はとばす
-        rospy.sleep(10.0)
+        rospy.sleep(2.0)
         self.speak('Thank you!')
-        self.object_list_req_pub.publish(list_req)
-        self.motorControl(6, 0.0)
+        #self.object_list_req_pub.publish(list_req)
+        #self.motorControl(6, 0.0)
         #self.m6_angle.data = 0.0
         #self.m6_pub.publish(self.m6_angle)
-        rospy.sleep(3.0)
+        rospy.sleep(1.0)
         
         #位置の微調整 ここを深度情報から調整したい
-        for i in range(1):
-            self.linearControl(-0.2)
-            rospy.sleep(0.5)
-        for i in range(3):
-            self.angularControl(1.0)
-            rospy.sleep(0.5)
+        #for i in range(1):
+        #    self.linearControl(-0.2)
+        #    rospy.sleep(0.5)
+        #for i in range(3):
+        #    self.angularControl(1.0)
+        #    rospy.sleep(0.5)
+        rospy.loginfo('Finish the state0')
         return 1
 
     def findTable(self):#---------------------------------------state1
         print '-'*40
         rospy.loginfo("Start state1")
-        self.motorControl(6, 0.6)
+        #self.motorControl(6, 0.6)
         #self.m6_angle.data = 0.6
         #self.m6_pub.publish(self.m6_angle)
         rospy.sleep(2.0)
-        self.angularControl(0)
-        list_req.data =  True
-        self.object_list_req_pub.publish(list_req)
+        #self.angularControl(0)
+        #list_req.data =  True
+        #self.object_list_req_pub.publish(list_req)
         rospy.sleep(3.0)
+        self.object_num = 2
         print 'Object_num :', self.object_num
         count = 0
-        while self.object_num < 3 and not rospy.is_shutdown():
-            count += 1
-            print 'count'
-            self.object_list = []
-            rospy.sleep(2.0)
-            self.object_list_req_pub.publish(list_req)
-            rospy.sleep(1.0)
-            print 'Object_num :', self.object_num
-            print 'Waiting For Object Recognize!'
-            if count >= 15:
-                count = 0
-                self.m6_angle.data = -0.4
-                self.twist_cmd.angular.z *= -1 #処理を理解する
-                #self.motorControl(6, 0.6)
-                self.m6_pub.publish(self.m6_angle.data)
-                rospy.sleep(3.0)
+        #while self.object_num < 3 and not rospy.is_shutdown():
+        #    count += 1
+        #    print 'count'
+        #    self.object_list = []
+        #    rospy.sleep(2.0)
+        #    #self.object_list_req_pub.publish(list_req)
+        #    rospy.sleep(1.0)
+        #    print 'Object_num :', self.object_num
+        #    print 'Waiting For Object Recognize!'
+        #    if count >= 15:
+        #        count = 0
+        #        #self.m6_angle.data = -0.4
+        #        #self.twist_cmd.angular.z *= -1 #処理を理解する
+        #        #self.motorControl(6, 0.6)
+        #        #self.m6_pub.publish(self.m6_angle.data)
+        #        rospy.sleep(3.0)
         self.object_num = -1
-        self.twist_cmd.angular.z = 0.0
-        if self.m6_angle.data == -0.4:
-            for i in range(4):
-                self.linearControl(-0.2)
-                rospy.sleep(0.5)
-            return 1
-            for i in range(2):
-                self.linearControl(0.2)
-                rospy.sleep(0.5)
+        #self.twist_cmd.angular.z = 0.0
+        #if self.m6_angle.data == -0.4:
+            #for i in range(4):
+            #    self.linearControl(-0.2)
+            #    rospy.sleep(0.5)
+            #return 1
+            #for i in range(2):
+            #    self.linearControl(0.2)
+            #    rospy.sleep(0.5)
         self.setPlace('table')
         self.speak('I found the table')
-        return 3
+        return 6
     
     def approachingTable(self):#--------------------------------state2
         print '-'*40
@@ -307,7 +309,7 @@ class StoringGroceries:
         return 2
 
 if __name__ == '__main__':
-    rosy.init_node('sg_master', anonymous = True)
+    rospy.init_node('sg_master', anonymous = True)
     sg = StoringGroceries()
     state = 0
     while not rospy.is_shutdown():
@@ -321,4 +323,3 @@ if __name__ == '__main__':
             state = sg.graspObject()#-------オブジェクトを把持して、棚に移動
         elif state == 4:
             state = sg.putObject()#---------オブジェクトを棚に置く
-        rospy.spin()
