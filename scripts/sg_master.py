@@ -19,7 +19,7 @@ class StoringGroceries:
     def __init__(self):
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel_mux/input/teleop',Twist,queue_size=1)#kobukiの前進後進
         self.navigation_memorize_pub = rospy.Publisher('/navigation/memorize_place',String,queue_size=1)#目的地を記憶
-        self.navigation_command_pub = rospy.Publisher('/navigation/destination',String,queue_size=1)#ナビゲーション開始の命令
+        self.navigation_command_pub = rospy.Publisher('/navigation/command_place',String,queue_size=1)#ナビゲーション開始の命令
         self.object_recog_req_pub = rospy.Publisher('/object/recog_req',String,queue_size=1)#searchの開始
         self.object_list_req_pub = rospy.Publisher('/object/list_req',Bool,queue_size=1)#objectのリストをもらう
         self.object_grasp_req_pub = rospy.Publisher('/object/grasp_req',String,queue_size=10)#manipulationの開始
@@ -46,11 +46,12 @@ class StoringGroceries:
         self.object_num = -1
         self.object_plase_flg = False
         self.navigation_result_flg = False
-        #self.place_name = String()
+        self.place_name = String()
         self.m5_angle = Float64()
         self.m6_angle = Float64()
         self.twist_cmd = Twist()
         self.list_req = False
+        #self.place_name = 'Null'
 
     def getLaserCB(self, laser_scan):
         self.laser_dist = laser_scan.ranges
@@ -68,38 +69,42 @@ class StoringGroceries:
         self.object_list_flg = True
 
     def getObjectRecognizeResultCB(self, result_msg):
-        self.object_recog_flg = True
+        self.object_recog_flg = result_msg.data
 
     def getObjectGraspResultCB(self, result_msg):
-        self.object_grasp_result_flg = True
+        self.object_grasp_result_flg = result_msg.data
 
     def getObjectPlaseCB(self, result_msg):
-        self.object_plase_flg = True
+        self.object_plase_flg = result_msg.data
 
-    def getNavigationResultCB(self, result):
-        self.navigation_result_flg = True
+    def getNavigationResultCB(self, result_msg):
+        print result_msg.data
+        self.navigation_result_flg = result_msg.data
 
     def speak(self, sentense):
         #print sentense
         voice_cmd = '/usr/bin/picospeaker %s' %sentense
         subprocess.call(voice_cmd.strip().split(' '))
 
-    def setPlace(self, place_name): 
-        #place_name.data = place_name
-        #self.navigation_memorize_pub.publish(place_name)
+    def setPlace(self, receive_msg): 
+        place_name = String()
+        place_name = receive_msg
         rospy.loginfo("Memorizing...")
-        #while self.navigation_result_flg == False and not rospy.is_shutdown():
-        #    time.sleep(0.5)
-        #self.navigation_result_flg = False
+        self.navigation_memorize_pub.publish(place_name)
+        while self.navigation_result_flg == False and not rospy.is_shutdown():
+            time.sleep(3.0)
+        self.navigation_result_flg = False
         rospy.loginfo("Memorization complete!")
+        self.speak("Memorized!")
 
-    def movePlace(self, place_name):
-        place_name.data = place_name
-        #self.navigation_command_pub.publish(place_name)
+    def movePlace(self, receive_msg):
+        place_name = String()
+        place_name = receive_msg
+        self.navigation_command_pub.publish(place_name)
         rospy.loginfo("Moving...")
-        #while self.navigation_result_flg == False and not rospy.is_shutdown():
-        #    rospy.sleep(0.5)
-        #self.navigation_result_flg = False
+        while self.navigation_result_flg == False and not rospy.is_shutdown():
+            rospy.sleep(3.0)
+        self.navigation_result_flg = False
         rospy.loginfo("Has arrived!")
     
     def linearControl(self, linear_num):
@@ -121,27 +126,28 @@ class StoringGroceries:
             self.m6_pub.publish(self.m6_angle)
 
     def inspectCupboard(self):#-------------------------------------------state0 
-        print '-'*40
+        print '-'*80
         rospy.loginfo("Start state0")
         self.speak('I start storing groceries')
         #self.motorControl(6, 0.6)
         #self.m6_angle.data = 0.6
         #self.m6_pub.publish(self.m6_angle)
         rospy.loginfo("Advancing!")
-        #while self.front_laser_dist > 0.5 and not rospy.is_shutdown():
-        #    self.linearControl(0.2)
-        #    rospy.sleep(0.1)
+        while self.front_laser_dist > 0.7 and not rospy.is_shutdown():
+            self.linearControl(0.1)
+            rospy.sleep(0.1)
+        rospy.sleep(3.0)
         self.setPlace('cupboard')
         rospy.sleep(2.0)
         rospy.loginfo("Reverse!")
-        #while front_laser_dist < 0.80 and not rospy.is_shutdown():
-        #    self.linearControl(-0.2)
-        #    rospy.sleep(0.1)
+        while self.front_laser_dist < 0.8 and not rospy.is_shutdown():
+            self.linearControl(-0.1)
+            rospy.sleep(0.1)
         rospy.sleep(2.0)
         self.speak('I reached the cup board')
         self.speak('Can you open the cup boar door?')
         #扉開いたかの判断はとばす
-        rospy.sleep(2.0)
+        rospy.sleep(5.0)
         self.speak('Thank you!')
         #self.object_list_req_pub.publish(list_req)
         #self.motorControl(6, 0.0)
@@ -153,14 +159,14 @@ class StoringGroceries:
         #for i in range(1):
         #    self.linearControl(-0.2)
         #    rospy.sleep(0.5)
-        #for i in range(3):
+        #for i in range(1):
         #    self.angularControl(1.0)
         #    rospy.sleep(0.5)
         rospy.loginfo('Finish the state0')
-        return 1
+        return 4
 
     def findTable(self):#---------------------------------------state1
-        print '-'*40
+        print '-'*80
         rospy.loginfo("Start state1")
         #self.motorControl(6, 0.6)
         #self.m6_angle.data = 0.6
@@ -175,14 +181,14 @@ class StoringGroceries:
         count = 0
         #while self.object_num < 3 and not rospy.is_shutdown():
         #    count += 1
-        #    print 'count'
-        #    self.object_list = []
-        #    rospy.sleep(2.0)
-        #    #self.object_list_req_pub.publish(list_req)
-        #    rospy.sleep(1.0)
-        #    print 'Object_num :', self.object_num
-        #    print 'Waiting For Object Recognize!'
-        #    if count >= 15:
+           # print 'count'
+           # self.object_list = []
+           # rospy.sleep(2.0)
+           # #self.object_list_req_pub.publish(list_req)
+           # rospy.sleep(1.0)
+           # print 'Object_num :', self.object_num
+           # print 'Waiting For Object Recognize!'
+           # if count >= 15:
         #        count = 0
         #        #self.m6_angle.data = -0.4
         #        #self.twist_cmd.angular.z *= -1 #処理を理解する
@@ -228,7 +234,7 @@ class StoringGroceries:
             self.object_num = -1
             self.twist_cmd.linear.x = 0
             self.twist_cmd.angular.z = 0
-            return 3
+            return 4
 
     def graspObject(self):#-------------------------------------state3
         print '-'*40
@@ -250,63 +256,62 @@ class StoringGroceries:
         return 4   
 
     def putObject(self):#---------------------------------------state4
-        print '-'*40
+        print '-'*80
         rospy.loginfo("Start state4")
-        #self.place_name = 'cupboard'
         self.movePlace('cupboard')
-        list_req = Bool()
-        list_req.data = True
+        #list_req = Bool()
+        #list_req.data = True
         #self.twist_cmd.linear.x = 0
         #self.twist_cmd.angular.z = -1.0
         count = 2
-        self.object_list_req_pub.publish(list_req)
+        #self.object_list_req_pub.publish(list_req)
         rospy.sleep(3.0)
-        while self.object_num < 1 and not rospy.is_shutdown():
-            count +=1
-            print count
-            self.object_list =[]
-            self.cmd_vel_pub.publish(self.twist_cmd)
-            rospy.sleep(2.0)
-            self.object_list_req_pub.publish(list_req)
-            rospy.sleep(1.0)
-            print 'Object num:', self.object_num
-            print 'Cupboard searching'
-            if count >= 4:
-                count = 0
-                self.twist_cmd.angular.z *= -1#angular.zに-1を書きたものを
-        self.object_list = []
-        self.object_num = -1
-        self.twist_cmd.linear.x = -0.2
-        self.twist_cmd.angular.z = 0
-        while self.front_laser_dist < 0.6 and not rospy.is_shutdown():
-            self.cmd_vel_pub.publish(self.twist_cmd)
-            rospy.sleep(0.1)
-        place_req = Bool()
-        place_req.data = True
-        self.object_place_req_pub.publish(place_req)
-        print 'Object Placing'
-        while self.object_place_flg == False and not rospy.is_shutdown():
-            rospy.sleep(0.5)
-        rospy.sleep(3.0)
-        self.object_place_flg = False
-        self.twist_cmd.linear.x = 0.1
-        self.twist_cmd.angular.z = 0
-        while self.front_laser_dist > 0.35 and not rospy.is_shutdown():
-            self.cmd_vel_pub.publish(self.twist_cmd)
-            rospy.sleep(0.1)
-        rospy.sleep(1.0)
-        self.m5_angle.data = -0.4
-        self.m5_pub.publish(self.m5_angle)
-        rospy.sleep(1.0)
-        self.twist_cmd.linear.x = -0.2
-        self.twist_cmd.angular.z = 0
-        while self.front_laser_dist < 0.6 and not rospy.is_shutdown():
-            self.cmd_vel_pub.publish(self.twist_cmd)
-            rospy.sleep(0.1)
-        self.twist_cmd.linear.x = 0
-        pose_req = String()
-        pose_req.data = 'carry'
-        return 2
+        # while self.object_num < 1 and not rospy.is_shutdown():
+        #     count +=1
+        #     print count
+        #     self.object_list =[]
+        #     self.cmd_vel_pub.publish(self.twist_cmd)
+        #     rospy.sleep(2.0)
+        #     self.object_list_req_pub.publish(list_req)
+        #     rospy.sleep(1.0)
+        #     print 'Object num:', self.object_num
+        #     print 'Cupboard searching'
+        #     if count >= 4:
+        #         count = 0
+        #         self.twist_cmd.angular.z *= -1#angular.zに-1を書きたものを
+        # self.object_list = []
+        # self.object_num = -1
+        # self.twist_cmd.angular.z = 0
+        # while self.front_laser_dist < 0.6 and not rospy.is_shutdown():
+        #     self.linearControl(-0.2)
+        #     rospy.sleep(0.1)
+        #place_req = Bool()
+        #place_req.data = True
+        #self.object_place_req_pub.publish(place_req)
+        #print 'Object Placing'
+       # while self.object_place_flg == False and not rospy.is_shutdown():
+       #     rospy.sleep(0.5)
+        #rospy.sleep(3.0)
+       # self.object_place_flg = False
+       # self.twist_cmd.linear.x = 0.1
+       # self.twist_cmd.angular.z = 0
+        # while self.front_laser_dist > 0.35 and not rospy.is_shutdown():
+        #     self.cmd_vel_pub.publish(self.twist_cmd)
+        #     rospy.sleep(0.1)
+        # rospy.sleep(1.0)
+        # self.m5_angle.data = -0.4
+        # self.m5_pub.publish(self.m5_angle)
+        # rospy.sleep(1.0)
+        # self.twist_cmd.linear.x = -0.2
+        # self.twist_cmd.angular.z = 0
+        # while self.front_laser_dist < 0.6 and not rospy.is_shutdown():
+        #     self.cmd_vel_pub.publish(self.twist_cmd)
+        #     rospy.sleep(0.1)
+        # self.twist_cmd.linear.x = 0
+        # pose_req = String()
+        # pose_req.data = 'carry'
+        rospy.loginfo("Finish the state4")
+        return 6
 
 if __name__ == '__main__':
     rospy.init_node('sg_master', anonymous = True)

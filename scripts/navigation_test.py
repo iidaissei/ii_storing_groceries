@@ -26,8 +26,8 @@ class NavigationTest:
         print '',sub
 
 if __name__ == '__main__':
+    rospy.init_node('navigation_test', anonymous = True)
     while not rospy.is_shutdown():
-        rospy.spin()
         nav_test = NavigationTest()
         print 'Please input a or b'
         result = raw_input('>> ')
