@@ -132,7 +132,7 @@ class StoringGroceries:
         print '-'*80
         rospy.loginfo("Start state0")
         self.speak('I start storing groceries')
-        #self.motorControl(6, 0.6)
+        self.motorControl(6, 0.6)
         rospy.loginfo("Advancing!")
         while self.front_laser_dist > 0.5 and not rospy.is_shutdown():
             self.linearControl(0.1)
@@ -151,8 +151,8 @@ class StoringGroceries:
         rospy.sleep(6.0)
         self.speak('Thank you!')
         #棚の物体を認識してクラス分けに活用する？活用できるか？
-        #self.object_list_req_pub.publish(list_req)
-        #self.motorControl(6, 0.0)
+        self.object_list_req_pub.publish(list_req)
+        self.motorControl(6, 0.0)
         rospy.sleep(1.0)
         
         #位置の微調整 机が棚から見た右側にある場合
@@ -164,7 +164,7 @@ class StoringGroceries:
         #    rospy.sleep(0.5)
         rospy.loginfo('Finish the state0')
         self.movePlace('cupboard')
-        return 4
+        return 1
 
     def findTable(self):#---------------------------------------state1
         print '-'*80
@@ -261,34 +261,34 @@ class StoringGroceries:
         print '-'*80
         rospy.loginfo("Start state4")
         self.movePlace('cupboard')
-        #list_req = Bool()
-        #list_req.data = True
-        #self.twist_cmd.linear.x = 0
-        #self.twist_cmd.angular.z = -1.0
+        list_req = Bool()
+        list_req.data = True
+        self.twist_cmd.linear.x = 0
+        self.twist_cmd.angular.z = -1.0
         count = 2
-        #self.object_list_req_pub.publish(list_req)
+        self.object_list_req_pub.publish(list_req)
         rospy.sleep(3.0)
-        #while self.object_num < 3 and not rospy.is_shutdown():
-            #count += 1
-            #print count
-            #self.object_list =[]
-            #self.angularControl(-1.0)
-            #rospy.sleep(2.0)
-            #self.object_list_req_pub.publish(list_req)
-            #rospy.sleep(1.0)
-            #print 'Object num:', self.object_num
-            #print 'Cupboard searching'
-            #if count >= 4:
-            #    count = 0
-            #    self.twist_cmd.angular.z *= -1#angular.zに-1を書きたものを
-        #self.object_list = []
-        #self.object_num = -1
-        #while self.front_laser_dist < 0.6 and not rospy.is_shutdown():
-        #    self.linearControl(-0.2)
-        #    rospy.sleep(0.1)
-        #place_req = Bool()
-        #place_req.data = True
-        #self.object_place_req_pub.publish(place_req)
+        while self.object_num < 3 and not rospy.is_shutdown():
+            count += 1
+            print count
+            self.object_list =[]
+            self.angularControl(-1.0)
+            rospy.sleep(2.0)
+            self.object_list_req_pub.publish(list_req)
+            rospy.sleep(1.0)
+            print 'Object num:', self.object_num
+            print 'Cupboard searching'
+            if count >= 4:
+                count = 0
+                self.twist_cmd.angular.z *= -1#angular.zに-1を書きたものを
+        self.object_list = []
+        self.object_num = -1
+        while self.front_laser_dist < 0.6 and not rospy.is_shutdown():
+            self.linearControl(-0.2)
+            rospy.sleep(0.1)
+        place_req = Bool()
+        place_req.data = True
+        self.object_place_req_pub.publish(place_req)
         return 6
         print 'Object Placing'
         while self.object_place_flg == False and not rospy.is_shutdown():
